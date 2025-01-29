@@ -67,7 +67,7 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white/70 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200/50">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div
@@ -78,10 +78,10 @@ export function ChatInterface() {
           >
             <div
               className={cn(
-                "max-w-[80%] rounded-lg p-4",
+                "max-w-[80%] rounded-lg p-4 shadow-sm",
                 message.role === 'user'
-                  ? 'bg-primary text-white'
-                  : 'bg-secondary text-secondary-foreground'
+                  ? 'bg-[#9b87f5] text-white'
+                  : 'bg-gray-50 text-gray-800 border border-gray-200/50'
               )}
             >
               <ReactMarkdown className="prose dark:prose-invert">
@@ -92,58 +92,35 @@ export function ChatInterface() {
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-secondary text-secondary-foreground rounded-lg p-4">
+            <div className="bg-gray-50 text-gray-800 rounded-lg p-4 border border-gray-200/50 shadow-sm">
               Thinking...
             </div>
           </div>
         )}
       </div>
-      <div className="border-t p-4">
+      <div className="border-t border-gray-200/50 p-4 bg-white/50">
         <div className="mb-2 flex gap-2 items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => formatText('bold')}
-            title="Bold"
-          >
-            <Bold className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => formatText('italic')}
-            title="Italic"
-          >
-            <Italic className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => formatText('code')}
-            title="Code"
-          >
-            <Code className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => formatText('list')}
-            title="List"
-          >
-            <List className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => formatText('link')}
-            title="Link"
-          >
-            <LinkIcon className="h-4 w-4" />
-          </Button>
+          {['bold', 'italic', 'code', 'list', 'link'].map((format) => (
+            <Button
+              key={format}
+              variant="ghost"
+              size="icon"
+              onClick={() => formatText(format)}
+              title={format.charAt(0).toUpperCase() + format.slice(1)}
+              className="text-gray-600 hover:bg-gray-100"
+            >
+              {format === 'bold' && <Bold className="h-4 w-4" />}
+              {format === 'italic' && <Italic className="h-4 w-4" />}
+              {format === 'code' && <Code className="h-4 w-4" />}
+              {format === 'list' && <List className="h-4 w-4" />}
+              {format === 'link' && <LinkIcon className="h-4 w-4" />}
+            </Button>
+          ))}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowPreview(!showPreview)}
+            className="text-gray-600 hover:bg-gray-100"
           >
             {showPreview ? 'Edit' : 'Preview'}
           </Button>
@@ -156,7 +133,7 @@ export function ChatInterface() {
           className="flex flex-col gap-2"
         >
           {showPreview ? (
-            <div className="min-h-[100px] p-3 border rounded-md bg-background">
+            <div className="min-h-[100px] p-3 border rounded-lg bg-gray-50">
               <ReactMarkdown className="prose dark:prose-invert">
                 {input}
               </ReactMarkdown>
@@ -166,11 +143,15 @@ export function ChatInterface() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message... (Markdown supported)"
-              className="editor-input min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="editor-input min-h-[100px] w-full rounded-lg border border-gray-200/50 bg-white/80 px-3 py-2 text-sm ring-offset-background placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9b87f5] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
           )}
           <div className="flex justify-end">
-            <Button type="submit" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+              className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white transition-colors duration-200"
+            >
               <Send className="h-4 w-4 mr-2" />
               Send
             </Button>
