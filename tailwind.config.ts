@@ -61,7 +61,36 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: '100%',
+            color: 'inherit',
+            a: {
+              color: 'inherit',
+              textDecoration: 'underline',
+              fontWeight: '500',
+            },
+            code: {
+              color: 'inherit',
+              background: 'hsl(var(--muted))',
+              padding: '0.2em 0.4em',
+              borderRadius: '3px',
+              fontWeight: '400',
+            },
+            'code::before': {
+              content: '""',
+            },
+            'code::after': {
+              content: '""',
+            },
+          },
+        },
+      },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    require('@tailwindcss/typography'),
+  ],
 } satisfies Config;
