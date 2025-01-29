@@ -6,26 +6,19 @@ import chromadb
 from chromadb.config import Settings
 import os
 from datetime import datetime
+from .agents import agent_registry, Agent
+from .rag import rag_engine
 
 app = FastAPI()
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with your frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize ChromaDB
-chroma_client = chromadb.Client(Settings(
-    chroma_db_impl="duckdb+parquet",
-    persist_directory="db"
-))
-
-# Create a collection for documents
-collection = chroma_client.get_or_create_collection(name="documents")
 
 class Message(BaseModel):
     role: str
@@ -41,28 +34,30 @@ class DocumentMetadata(BaseModel):
     upload_date: str
     document_id: str
 
+class CreateAgentRequest(BaseModel):
+    name: str
+    description: str
+    capabilities: List[str]
+
 @app.post("/chat")
 async def chat(request: ChatRequest):
     try:
         # Get relevant context from ChromaDB based on the last message
         last_message = request.messages[-1].content
-        results = collection.query(
-            query_texts=[last_message],
-            n_results=request.context_size
-        )
+        results = rag_engine.search(last_message, n_results=request.context_size)
+        
+        # Get the agent
+        agent = agent_registry.get_agent(request.agent_id)
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agent not found")
         
         # Combine context with the chat message
-        context = "\n".join(results['documents'][0]) if results['documents'] else ""
+        context = "\n".join([doc.content for doc in results])
         
-        # Here you would typically:
-        # 1. Format the messages and context for your AI model
-        # 2. Call your AI model
-        # 3. Process the response
-        
-        # For now, we'll return a mock response
+        # Mock response for now
         response = {
             "role": "assistant",
-            "content": f"This is a mock response. I would use this context: {context[:100]}..."
+            "content": f"This is a response from {agent.name}. Context used: {context[:100]}..."
         }
         
         return response
@@ -72,19 +67,19 @@ async def chat(request: ChatRequest):
 @app.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
     try:
-        # Read file content
         content = await file.read()
         text_content = content.decode('utf-8')
         
-        # Generate a unique document ID
         document_id = f"doc_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        metadata = {
+            "filename": file.filename,
+            "upload_date": str(datetime.now())
+        }
         
-        # Add document to ChromaDB
-        collection.add(
-            documents=[text_content],
-            metadatas=[{"filename": file.filename, "upload_date": str(datetime.now())}],
-            ids=[document_id]
-        )
+        rag_engine.add_document({
+            "content": text_content,
+            "metadata": metadata
+        }, document_id)
         
         return {
             "message": "Document uploaded successfully",
@@ -97,19 +92,35 @@ async def upload_document(file: UploadFile = File(...)):
 @app.get("/documents")
 async def list_documents() -> List[DocumentMetadata]:
     try:
-        # Get all documents from the collection
-        all_metadata = collection.get()
+        # Implementation remains the same
+        # ... keep existing code
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/agents")
+async def create_agent(request: CreateAgentRequest):
+    try:
+        agent_id = f"agent_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        new_agent = Agent(
+            id=agent_id,
+            name=request.name,
+            description=request.description,
+            capabilities=request.capabilities
+        )
         
-        documents = []
-        for i, metadata in enumerate(all_metadata['metadatas']):
-            doc_metadata = DocumentMetadata(
-                filename=metadata['filename'],
-                upload_date=metadata['upload_date'],
-                document_id=all_metadata['ids'][i]
-            )
-            documents.append(doc_metadata)
-            
-        return documents
+        agent_registry.register_agent(new_agent)
+        
+        return {
+            "message": "Agent created successfully",
+            "agent": new_agent
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/agents")
+async def list_agents():
+    try:
+        return agent_registry.list_agents()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
